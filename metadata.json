@@ -1,0 +1,6 @@
+{
+  "name": "Delhi e-District Document Compressor",
+  "description": "Compress images and PDFs for government document uploads locally on your device.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
