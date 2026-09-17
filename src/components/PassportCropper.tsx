@@ -296,7 +296,7 @@ export function PassportCropper() {
                </button>
             </div>
 
-            <div className="relative h-[60vh] min-h-[400px] w-full rounded-xl overflow-hidden bg-slate-950 shadow-inner">
+            <div className="relative w-full h-[320px] sm:h-[400px] lg:h-[500px] rounded-xl overflow-hidden bg-slate-950 shadow-inner touch-none">
                <Cropper
                  image={imageSrc}
                  crop={crop}
