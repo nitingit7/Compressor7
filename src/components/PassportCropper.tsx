@@ -222,19 +222,21 @@ export function PassportCropper() {
   };
 
   return (
-    <div className="flex flex-col gap-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
-      <div className="text-center">
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Passport Photo Cropper</h2>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Crop your photo to the exact size required by your application.</p>
+    <div className="flex flex-col gap-6">
+      <div className="text-center mb-2">
+        <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Passport Photo Cropper</h2>
+        <p className="mt-2 text-slate-500 dark:text-slate-400">Crop your photo to the exact size required by your application.</p>
       </div>
 
       {!imageSrc && (
-        <Dropzone
-          onFileSelect={handleFileSelect}
-          accept="image/jpeg, image/png, image/webp"
-          label="Supports JPG, JPEG, PNG, WEBP"
-          icon={<Scissors className="h-8 w-8" />}
-        />
+        <div className="mx-auto max-w-2xl w-full">
+          <Dropzone
+            onFileSelect={handleFileSelect}
+            accept="image/jpeg, image/png, image/webp"
+            label="Drag & drop or browse photo"
+            icon={<Scissors className="h-6 w-6 text-indigo-500 mb-2" />}
+          />
+        </div>
       )}
 
       {imageSrc && !result && (
@@ -242,17 +244,28 @@ export function PassportCropper() {
           
           {/* LEFT COLUMN: EDITOR */}
           <div className="lg:col-span-7 flex flex-col gap-4">
-            <div className="flex items-center justify-between rounded-lg bg-slate-50 p-4 dark:bg-slate-800/50">
-               <div className="min-w-0 flex-1">
-                 <p className="truncate text-sm font-medium text-slate-900 dark:text-white">{file?.name}</p>
-                 <p className="text-xs text-slate-500 dark:text-slate-400">Original: {originalDimensions?.w} × {originalDimensions?.h} px • {formatBytes(file?.size || 0)}</p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+               <div className="flex items-center gap-2 min-w-0">
+                 <FileImage className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                 <p className="truncate text-sm font-medium text-slate-700 dark:text-slate-300">
+                   {file?.name}
+                 </p>
+                 <span className="hidden sm:inline text-slate-300 dark:text-slate-600">•</span>
+                 <p className="hidden sm:block text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                   {originalDimensions?.w} × {originalDimensions?.h} px · {formatBytes(file?.size || 0)}
+                 </p>
                </div>
-               <button onClick={reset} className="ml-4 rounded-full p-2 text-slate-400 hover:bg-slate-200 hover:text-slate-600 dark:hover:bg-slate-700 dark:hover:text-slate-300">
-                 <RefreshCw className="h-4 w-4" />
+               
+               <button 
+                 onClick={reset} 
+                 className="flex items-center gap-1.5 rounded bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-200 hover:text-slate-900 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white sm:w-auto w-full justify-center"
+               >
+                 <RefreshCw className="h-3.5 w-3.5" />
+                 Change Photo
                </button>
             </div>
 
-            <div className="relative h-[450px] w-full rounded-xl overflow-hidden bg-slate-950 shadow-inner">
+            <div className="relative h-[60vh] min-h-[400px] w-full rounded-xl overflow-hidden bg-slate-950 shadow-inner">
                <Cropper
                  image={imageSrc}
                  crop={crop}
@@ -264,40 +277,87 @@ export function PassportCropper() {
                  onRotationChange={setRotation}
                  onCropComplete={onCropComplete}
                  showGrid={true}
-                 restrictPosition={false}
+                 restrictPosition={true}
                />
+               
+               {/* Live Crop Status Overlay */}
+               {croppedAreaPixels && (
+                 <div className="absolute bottom-3 left-3 rounded-md bg-slate-900/80 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm">
+                   Crop: {resizeMode === 'crop_resize' && activePreset?.id !== 'free' && customPixels ? (
+                     `${customPixels.width} × ${customPixels.height} px (Resized)`
+                   ) : (
+                     `${Math.round(croppedAreaPixels.width)} × ${Math.round(croppedAreaPixels.height)} px`
+                   )}
+                 </div>
+               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4 rounded-lg bg-slate-50 p-4 dark:bg-slate-800/50">
-               <div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-lg bg-slate-50 p-4 dark:bg-slate-800/50">
+               {/* Zoom Control */}
+               <div className="flex-1 max-w-[200px]">
                   <label className="flex items-center justify-between text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
                     <span className="flex items-center gap-1"><ZoomIn className="h-3 w-3"/> Zoom</span>
-                    <span>{Math.round(zoom * 100)}%</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono">{Math.round(zoom * 100)}%</span>
+                      <button onClick={() => setZoom(1)} className="text-[10px] uppercase tracking-wider text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 font-semibold px-1 py-0.5 rounded hover:bg-indigo-50 dark:hover:bg-indigo-900/30">Reset</button>
+                    </div>
                   </label>
-                  <input
-                    type="range"
-                    min={0.1}
-                    max={3}
-                    step={0.05}
-                    value={zoom}
-                    onChange={(e) => setZoom(Number(e.target.value))}
-                    className="w-full accent-indigo-600"
-                  />
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setZoom(z => Math.max(0.1, z - 0.1))} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                      <ZoomOut className="h-3.5 w-3.5" />
+                    </button>
+                    <input
+                      type="range"
+                      min={1}
+                      max={3}
+                      step={0.05}
+                      value={zoom}
+                      onChange={(e) => setZoom(Number(e.target.value))}
+                      className="w-full accent-indigo-600"
+                    />
+                    <button onClick={() => setZoom(z => Math.min(3, z + 0.1))} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                      <ZoomIn className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                </div>
-               <div>
+
+               <div className="hidden sm:block w-px h-8 bg-slate-200 dark:bg-slate-700"></div>
+
+               {/* Rotation Control */}
+               <div className="flex-1 max-w-[200px]">
                   <label className="flex items-center justify-between text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    <span className="flex items-center gap-1"><RotateCw className="h-3 w-3"/> Rotate</span>
-                    <span>{rotation}°</span>
+                    <span className="flex items-center gap-1"><RotateCw className="h-3 w-3"/> Rotation</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono">{rotation}°</span>
+                      <button onClick={() => setRotation(0)} className="text-[10px] uppercase tracking-wider text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 font-semibold px-1 py-0.5 rounded hover:bg-indigo-50 dark:hover:bg-indigo-900/30">Reset</button>
+                    </div>
                   </label>
-                  <input
-                    type="range"
-                    min={-180}
-                    max={180}
-                    step={1}
-                    value={rotation}
-                    onChange={(e) => setRotation(Number(e.target.value))}
-                    className="w-full accent-indigo-600"
-                  />
+                  <div className="flex items-center gap-2">
+                     <button onClick={() => setRotation(r => Math.max(-180, r - 5))} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-mono text-xs">-</button>
+                    <input
+                      type="range"
+                      min={-45}
+                      max={45}
+                      step={1}
+                      value={rotation}
+                      onChange={(e) => setRotation(Number(e.target.value))}
+                      className="w-full accent-indigo-600"
+                    />
+                    <button onClick={() => setRotation(r => Math.min(180, r + 5))} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-mono text-xs">+</button>
+                  </div>
+               </div>
+
+               <div className="hidden sm:block w-px h-8 bg-slate-200 dark:bg-slate-700"></div>
+
+               {/* Global Reset */}
+               <div className="flex items-center justify-center sm:justify-start">
+                 <button 
+                   onClick={() => { setZoom(1); setRotation(0); setCrop({x: 0, y: 0}); }}
+                   className="flex items-center gap-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white px-3 py-2 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                 >
+                   <RefreshCw className="h-3.5 w-3.5" />
+                   Reset Crop
+                 </button>
                </div>
             </div>
             
@@ -307,7 +367,7 @@ export function PassportCropper() {
           </div>
 
           {/* RIGHT COLUMN: SETTINGS */}
-          <div className="lg:col-span-5 flex flex-col gap-5 rounded-xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-800/50">
+          <div className="lg:col-span-5 flex flex-col gap-6">
             
             {/* ASPECT PRESET */}
             <div>
@@ -394,23 +454,23 @@ export function PassportCropper() {
             <hr className="border-slate-200 dark:border-slate-700" />
 
             {/* OUTPUT SETTINGS */}
-            <div className="space-y-4">
+            <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-700">
               <div>
                  <label className="mb-2 block text-sm font-medium text-slate-900 dark:text-white">Processing Mode</label>
-                 <div className="flex flex-col gap-2">
-                   <label className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 hover:bg-slate-100 cursor-pointer dark:border-slate-700 dark:hover:bg-slate-800">
-                     <input type="radio" name="resizemode" value="crop_only" checked={resizeMode === 'crop_only'} onChange={() => setResizeMode('crop_only')} className="mt-0.5 h-4 w-4 text-indigo-600" />
-                     <div className="text-sm">
-                       <p className="font-medium text-slate-900 dark:text-white">Crop Only</p>
-                       <p className="text-xs text-slate-500 dark:text-slate-400">Preserve original pixels of cropped area</p>
+                 <div className="grid grid-cols-2 gap-2">
+                   <label className="flex flex-col gap-1 rounded-lg border border-slate-200 p-3 hover:bg-slate-100 cursor-pointer dark:border-slate-700 dark:hover:bg-slate-800 transition-colors">
+                     <div className="flex items-center gap-2">
+                       <input type="radio" name="resizemode" value="crop_only" checked={resizeMode === 'crop_only'} onChange={() => setResizeMode('crop_only')} className="h-4 w-4 text-indigo-600" />
+                       <span className="text-sm font-medium text-slate-900 dark:text-white">Crop Only</span>
                      </div>
+                     <span className="text-xs text-slate-500 dark:text-slate-400 pl-6">Preserve original pixels</span>
                    </label>
-                   <label className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 hover:bg-slate-100 cursor-pointer dark:border-slate-700 dark:hover:bg-slate-800">
-                     <input type="radio" name="resizemode" value="crop_resize" checked={resizeMode === 'crop_resize'} onChange={() => setResizeMode('crop_resize')} className="mt-0.5 h-4 w-4 text-indigo-600" />
-                     <div className="text-sm">
-                       <p className="font-medium text-slate-900 dark:text-white">Crop + Resize</p>
-                       <p className="text-xs text-slate-500 dark:text-slate-400">Scale the output to match exact calculated dimensions</p>
+                   <label className="flex flex-col gap-1 rounded-lg border border-slate-200 p-3 hover:bg-slate-100 cursor-pointer dark:border-slate-700 dark:hover:bg-slate-800 transition-colors">
+                     <div className="flex items-center gap-2">
+                       <input type="radio" name="resizemode" value="crop_resize" checked={resizeMode === 'crop_resize'} onChange={() => setResizeMode('crop_resize')} className="h-4 w-4 text-indigo-600" />
+                       <span className="text-sm font-medium text-slate-900 dark:text-white">Crop + Resize</span>
                      </div>
+                     <span className="text-xs text-slate-500 dark:text-slate-400 pl-6">Scale to exact dimensions</span>
                    </label>
                  </div>
               </div>
@@ -430,15 +490,15 @@ export function PassportCropper() {
               </div>
 
               {/* COMPRESSION */}
-              <div className="rounded-lg bg-slate-100 p-4 dark:bg-slate-900/50">
-                 <label className="flex items-center gap-2 font-medium text-sm text-slate-900 dark:text-white cursor-pointer">
+              <div className="rounded-lg border border-slate-200 p-4 dark:border-slate-700 bg-white dark:bg-slate-900">
+                 <label className="flex items-center gap-2 font-medium text-sm text-slate-900 dark:text-white cursor-pointer select-none">
                    <input type="checkbox" checked={enableCompression} onChange={e => setEnableCompression(e.target.checked)} className="h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300" />
                    Compress after cropping
                  </label>
                  
                  {enableCompression && (
-                   <div className="mt-3 space-y-3 animate-in fade-in slide-in-from-top-1">
-                     <p className="text-xs text-slate-500">The cropped image will be compressed targeting this file size.</p>
+                   <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top-1 border-t border-slate-100 dark:border-slate-800 pt-3">
+                     <p className="text-xs text-slate-500">Target maximum file size:</p>
                      <div className="flex flex-wrap gap-2">
                        {TARGET_SIZE_PRESETS.map((size) => (
                          <button
@@ -447,14 +507,14 @@ export function PassportCropper() {
                            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                              targetSize === size
                                ? 'bg-indigo-600 text-white'
-                               : 'bg-white text-slate-600 hover:bg-slate-50 ring-1 ring-inset ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700'
+                               : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
                            }`}
                          >
                            {size} KB
                          </button>
                        ))}
                      </div>
-                     <div className="flex items-center gap-2">
+                     <div className="flex items-center gap-2 mt-2">
                        <input
                          type="number"
                          value={targetSize}
@@ -477,7 +537,7 @@ export function PassportCropper() {
             <button
               onClick={handleProcess}
               disabled={isProcessing}
-              className="mt-auto w-full flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 disabled:opacity-50"
+              className="mt-auto w-full flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-3.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 disabled:opacity-50 transition-colors"
             >
               {isProcessing ? (
                 <>
@@ -497,68 +557,51 @@ export function PassportCropper() {
 
       {/* RESULT STATE */}
       {result && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-6">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-2xl w-full">
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 dark:border-emerald-900/30 dark:bg-emerald-900/10">
             <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-400">
-                <CheckCircle2 className="h-6 w-6" />
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-400">
+                <CheckCircle2 className="h-5 w-5" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-emerald-800 dark:text-emerald-400">
+                <h3 className="text-base font-semibold text-emerald-800 dark:text-emerald-400">
                   Photo processed successfully
                 </h3>
                 
-                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-emerald-700 dark:text-emerald-300">
-                  <div>
-                    <span className="block opacity-75">Original</span>
-                    <span className="font-medium">{originalDimensions?.w} × {originalDimensions?.h} px</span>
+                <div className="mt-3 grid grid-cols-2 gap-y-2 gap-x-4 text-sm text-emerald-700 dark:text-emerald-300 bg-emerald-100/50 dark:bg-emerald-900/20 p-3 rounded-lg">
+                  <div className="flex justify-between col-span-2 sm:col-span-1">
+                    <span className="opacity-75">Cropped</span>
+                    <span className="font-medium font-mono">{result.cropW} × {result.cropH}</span>
                   </div>
-                  <div>
-                    <span className="block opacity-75">Cropped</span>
-                    <span className="font-medium">{result.cropW} × {result.cropH} px</span>
+                  <div className="flex justify-between col-span-2 sm:col-span-1">
+                    <span className="opacity-75">Format</span>
+                    <span className="font-medium font-mono">{result.type ? (result.type.split('/')[1] || '').toUpperCase() : 'UNKNOWN'}</span>
                   </div>
-                  <div>
-                    <span className="block opacity-75">Mode</span>
-                    <span className="font-medium">{resizeMode === 'crop_resize' ? 'Crop & Resize' : 'Crop Only'}</span>
-                  </div>
-                  <div>
-                    <span className="block opacity-75">Format</span>
-                    <span className="font-medium">{result.type ? (result.type.split('/')[1] || '').toUpperCase() : 'UNKNOWN'}</span>
-                  </div>
-                  {result.stats ? (
+                  {result.stats && (
                     <>
-                      <div>
-                        <span className="block opacity-75">Original File Size</span>
-                        <span className="font-medium">{formatBytes(result.originalSize)}</span>
+                      <div className="flex justify-between col-span-2 sm:col-span-1">
+                        <span className="opacity-75">Original Size</span>
+                        <span className="font-medium font-mono">{formatBytes(result.originalSize)}</span>
                       </div>
-                      <div>
-                        <span className="block opacity-75">Final Compressed Size</span>
-                        <span className="font-medium">{formatBytes(result.stats.compressedSize)}</span>
-                      </div>
-                      <div className="col-span-full">
-                        <span className="block opacity-75">Target Size</span>
-                        <span className="font-medium">{result.stats.targetSize} KB</span>
+                      <div className="flex justify-between col-span-2 sm:col-span-1">
+                        <span className="opacity-75 text-emerald-800 dark:text-emerald-400 font-medium">Final Size</span>
+                        <span className="font-bold text-emerald-800 dark:text-emerald-400 font-mono">{formatBytes(result.stats.compressedSize)}</span>
                       </div>
                     </>
-                  ) : (
-                    <div className="col-span-full">
-                      <span className="block opacity-75">Compression</span>
-                      <span className="font-medium">Off (Maximum practical quality of crop)</span>
-                    </div>
                   )}
                 </div>
 
-                <div className="mt-6 flex flex-wrap gap-3">
+                <div className="mt-5 flex flex-wrap gap-3">
                   <button
                     onClick={handleDownload}
-                    className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2"
+                    className="inline-flex flex-1 sm:flex-none justify-center items-center gap-2 rounded-lg bg-emerald-600 px-6 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 transition-colors"
                   >
                     <Download className="h-4 w-4" />
-                    Download Photo
+                    Download
                   </button>
                   <button
                     onClick={reset}
-                    className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-700"
+                    className="inline-flex flex-1 sm:flex-none justify-center items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-700 transition-colors"
                   >
                     <RefreshCw className="h-4 w-4" />
                     Process Another
