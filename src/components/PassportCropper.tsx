@@ -145,11 +145,6 @@ export function PassportCropper() {
            resizeW = customPixels.width;
            resizeH = customPixels.height;
         } else {
-           // For fixed presets without explicit physical size mapping on this UI, 
-           // we just keep the cropped pixels unless they switch to custom.
-           // Since prompt asks for resize only when requested dimensions exist.
-           // But if they just pick 35x45mm preset and Crop+Resize without typing size? 
-           // Let's use standard 300 DPI conversion for the preset name if it has mm.
            const match = activePreset.label.match(/(\d+) × (\d+) (mm|inch|in)/);
            if (match) {
              const w = parseInt(match[1], 10);
@@ -172,6 +167,10 @@ export function PassportCropper() {
         resizeH,
         finalType
       );
+      
+      if (!croppedBlob || croppedBlob.size === 0) {
+        throw new Error("Unable to create the cropped image. Please try again.");
+      }
 
       let finalBlob = croppedBlob;
       let finalStats: any = null;
@@ -194,13 +193,38 @@ export function PassportCropper() {
         };
       }
 
+      if (!finalBlob || finalBlob.size === 0) {
+        throw new Error("Generated image is empty.");
+      }
+
       // Cleanup previous result URL
       if (result && result.url) URL.revokeObjectURL(result.url);
 
+      // Determine final filename
+      const lastDot = file.name.lastIndexOf('.');
+      const nameWithoutExt = lastDot !== -1 ? file.name.substring(0, lastDot) : file.name;
+      let finalName = file.name;
+      if (finalType === 'image/jpeg') finalName = `${nameWithoutExt}.jpg`;
+      else if (finalType === 'image/png') finalName = `${nameWithoutExt}.png`;
+      else if (finalType === 'image/webp') finalName = `${nameWithoutExt}.webp`;
+
+      const finalUrl = URL.createObjectURL(finalBlob);
+
+      // TRIGGER DOWNLOAD IMMEDIATELY
+      setProgressMsg('Downloading...');
+      
+      const link = document.createElement('a');
+      link.href = finalUrl;
+      link.download = finalName;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
       setResult({
-        url: URL.createObjectURL(finalBlob),
+        url: finalUrl,
         blob: finalBlob,
-        name: file.name,
+        name: finalName,
         type: finalType,
         cropW: resizeW || croppedAreaPixels.width,
         cropH: resizeH || croppedAreaPixels.height,
@@ -209,7 +233,8 @@ export function PassportCropper() {
       });
 
     } catch (err: any) {
-      setError(err.message || 'An error occurred during processing.');
+      console.error('Crop export failed:', err);
+      setError(err.message || 'Unable to download the cropped photo. Please try again.');
     } finally {
       setIsProcessing(false);
       setProgressMsg('');
@@ -217,8 +242,14 @@ export function PassportCropper() {
   };
 
   const handleDownload = () => {
-    if (!result) return;
-    generateDownload(result.url, result.name);
+    if (!result || !result.url) return;
+    const link = document.createElement('a');
+    link.href = result.url;
+    link.download = result.name;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
