@@ -127,7 +127,7 @@ export async function compressPdf(
         ctx.filter = 'grayscale(100%)';
       }
       
-      await page.render({ canvasContext: ctx as any, viewport }).promise;
+      await page.render({ canvasContext: ctx as any, canvas: canvas as any, viewport }).promise;
       
       const pageBlob = await compressToBlob(canvas, params.quality);
       const base64Image = await blobToBase64(pageBlob);
